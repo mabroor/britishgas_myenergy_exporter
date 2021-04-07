@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "britishgas_myenergy_exporter"
+version = "0.1.0"
+description = "Export data from British Gas MyEnergy"
+authors = ["Mabroor Ahmed <mabroor@essels.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+gql = "^2.0.0"
+requests = "^2.25.1"
+selenium = "^3.141.0"
+
+[tool.poetry.dev-dependencies]
+black = {version = "^20.8b1", allow-prereleases = true}
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.scripts]
+download_myenergy = "britishgas_myenergy_exporter.fetch:main"
