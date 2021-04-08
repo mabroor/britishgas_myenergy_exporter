@@ -1,5 +1,6 @@
 import logging
 from time import sleep
+from rich import console
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -9,8 +10,9 @@ from selenium.common.exceptions import TimeoutException
 from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
 
+from rich.console import Console
 
-logging.basicConfig()
+
 
 # British Gas account login page
 LOGIN_PAGE_URL = "https://www.britishgas.co.uk/identity/"
@@ -24,6 +26,8 @@ MYENERGY_GRAPHQL_URL = "https://www.britishgas.co.uk/myenergy_prod/me-api/graphq
 
 # GraphQL request time out (seconds)
 TIMEOUT_S = 20
+
+console = Console()
 
 
 def daily_history_query(first_datetime, last_datetime):
@@ -61,41 +65,50 @@ def daily_history_query(first_datetime, last_datetime):
 
 
 def login(username, password):
-    
-    driver = webdriver.Firefox()
-    driver.get(LOGIN_PAGE_URL)
-    try:
-        WebDriverWait(driver, TIMEOUT_S).until(EC.presence_of_element_located((By.ID, "loginForm-email")))
-    except TimeoutException:
-        logging.warning("Timeout for page to load")
+    with console.status("[bold green]Fetching GRAPHQL_TOKEN..."):
+        console.log("Setting up headless browser session")
+        ff_options = webdriver.FirefoxOptions()
+        ff_options.add_argument('-headless')
+        driver = webdriver.Firefox(firefox_options=ff_options)
+        console.log("Visting login page")
+        driver.get(LOGIN_PAGE_URL)
+        try:
+            WebDriverWait(driver, TIMEOUT_S).until(EC.presence_of_element_located((By.ID, "loginForm-email")))
+        except TimeoutException:
+            logging.warning("Timeout for page to load")
 
-    driver.find_element(By.ID, "loginForm-email").click()
-    driver.find_element(By.ID, "loginForm-email").send_keys(username)
-    driver.find_element(By.ID, "loginForm-next").click()
-    try:
-        WebDriverWait(driver, TIMEOUT_S).until(EC.presence_of_element_located((By.ID, "loginForm-password")))
-    except TimeoutException:
-        logging.warning("Timeout for page to load")
-    driver.find_element(By.ID, "loginForm-password").click()
-    driver.find_element(By.ID, "loginForm-password").send_keys(password)
-    driver.find_element(By.ID, "loginForm-submit").click()
-    
-    try:
-        WebDriverWait(driver, TIMEOUT_S).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".account-number")))
-    except TimeoutException:
-        logging.warning("Timeout for page to load")
+        driver.find_element(By.ID, "loginForm-email").click()
+        driver.find_element(By.ID, "loginForm-email").send_keys(username)
+        driver.find_element(By.ID, "loginForm-next").click()
+        console.log("Logging in..")
+        try:
+            WebDriverWait(driver, TIMEOUT_S).until(EC.presence_of_element_located((By.ID, "loginForm-password")))
+        except TimeoutException:
+            logging.warning("Timeout for page to load")
+        driver.find_element(By.ID, "loginForm-password").click()
+        driver.find_element(By.ID, "loginForm-password").send_keys(password)
+        driver.find_element(By.ID, "loginForm-submit").click()
+        
+        console.log("Fetching account_id..")
+        sleep(5)
+        try:
+            WebDriverWait(driver, TIMEOUT_S).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".account-number")))
+        except TimeoutException:
+            logging.warning("Timeout for page to load")
 
-    account_id = driver.find_element(By.CSS_SELECTOR, ".account-number").text
-    
-    driver.get(MYENERGY_PAGE_URL.format(account_id=account_id))
-    sleep(10)
-    graphql_token = driver.execute_script(
-        "return window.localStorage.getItem('myenergy.token');"
-    ).strip('"')
+        account_id = driver.find_element(By.CSS_SELECTOR, ".account-number").text
+        
+        driver.get(MYENERGY_PAGE_URL.format(account_id=account_id))
+        sleep(10)
+        graphql_token = driver.execute_script(
+            "return window.localStorage.getItem('myenergy.token');"
+        ).strip('"')
 
-    sleep(5)
-    driver.close()
-    return graphql_token
+        sleep(5)
+        driver.close()
+        console.log("Browser Session closed")
+        console.log(f"Account ID: [bold red]{graphql_token}[/bold red]")
+        return graphql_token
 
 
 def get_graphql_client(graphql_token):

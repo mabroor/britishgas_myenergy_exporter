@@ -6,12 +6,13 @@ from datetime import datetime, timedelta
 import logging
 import getpass
 import os
+from rich.console import Console
 
 from . import client
 
 # First to download the history from. The response to the request
 # will contain every day from the 1 January of this year.
-BEGIN_YEAR = 2019
+BEGIN_YEAR = 2021
 
 # Name of output CSV file containing gas data
 GAS_FILENAME = "myenergy_gas.csv"
@@ -19,6 +20,7 @@ GAS_FILENAME = "myenergy_gas.csv"
 # Name of output CSV file containing electricity data
 ELEC_FILENAME = "myenergy_electricity.csv"
 
+console = Console()
 
 def csv_header_row():
     """CSV header string"""
@@ -55,6 +57,7 @@ def save_as_csv(consumption_history, filename):
         filename (str): CSV file name
     """
     with open(filename, "w") as f:
+        console.log(f">> Creating CSV {filename}...")
         f.write(csv_header_row())
         for data in consumption_history:
             f.write(make_csv_row(data) + "\n")
