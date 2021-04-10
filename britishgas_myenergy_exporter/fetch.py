@@ -2,27 +2,30 @@
 
 import argparse
 import calendar
-from datetime import datetime, timedelta
-import logging
 import getpass
+import logging
 import os
+from datetime import datetime, timedelta
+from typing import Any, Iterator, List, Union
+
 from rich.console import Console
 
 from . import client
 
 # First to download the history from. The response to the request
 # will contain every day from the 1 January of this year.
-BEGIN_YEAR = 2021
+BEGIN_YEAR: int = 2021
 
 # Name of output CSV file containing gas data
-GAS_FILENAME = "myenergy_gas.csv"
+GAS_FILENAME: str = "myenergy_gas.csv"
 
 # Name of output CSV file containing electricity data
-ELEC_FILENAME = "myenergy_electricity.csv"
+ELEC_FILENAME: str = "myenergy_electricity.csv"
 
-console = Console()
+console: Console = Console()
 
-def csv_header_row():
+
+def csv_header_row() -> str:
     """CSV header string"""
     return ",".join(
         [
@@ -36,7 +39,7 @@ def csv_header_row():
     )
 
 
-def make_csv_row(consumption_data):
+def make_csv_row(consumption_data: Any) -> str:
     """Make a CSV row string from a consumption_data key"""
     return ", ".join(
         (
@@ -50,7 +53,7 @@ def make_csv_row(consumption_data):
     )
 
 
-def save_as_csv(consumption_history, filename):
+def save_as_csv(consumption_history: List, filename: str) -> None:
     """Save the "consumption_data" reponse as a CSV file
     Args:
         consumption_history (dict): GraphQL response
@@ -63,7 +66,7 @@ def save_as_csv(consumption_history, filename):
             f.write(make_csv_row(data) + "\n")
 
 
-def iterate_month_range(begin_datetime, end_datetime):
+def iterate_month_range(begin_datetime: datetime, end_datetime: datetime) -> Iterator:
     """Iterate between two datetimes and produce
     intervals (first day of month, last day of month)
     Args:
@@ -75,7 +78,7 @@ def iterate_month_range(begin_datetime, end_datetime):
         first day of the month and last day of the month.
     """
     month_iter = begin_datetime.month
-    MONTHS_IN_YEAR = 12
+    MONTHS_IN_YEAR: int = 12
 
     while True:
         year = begin_datetime.year + month_iter // MONTHS_IN_YEAR
@@ -84,24 +87,21 @@ def iterate_month_range(begin_datetime, end_datetime):
         if month > end_datetime.month and year >= end_datetime.year:
             break
 
-        NB_DAYS_IDX = 1
+        NB_DAYS_IDX: int = 1
         yield (
             datetime(year, month, 1, 0, 0, 0),
-            datetime(
-                year, month, calendar.monthrange(year, month)[NB_DAYS_IDX], 23, 59, 59
-            ),
+            datetime(year, month, calendar.monthrange(year, month)[NB_DAYS_IDX], 23, 59, 59),
         )
 
         month_iter = month_iter + 1
 
 
-def fetch_consumption_history(username, password):
+def fetch_consumption_history(username: str, password: str) -> List:
     """Get the consumption history from the hardcoded time origin to
     the present time.
     Args:
         username (str): British Gas / myenergy user name (e.g. email address)
         password (str): British Gas / myenergy account password
-        account_number (int): British Gas / myenergy account number
     Returns:
         "consumption_data" GraphQL response.
     """
@@ -133,7 +133,7 @@ def fetch_consumption_history(username, password):
     return all_fuels_history
 
 
-def main():
+def main() -> None:
     """Entry point"""
     parser = argparse.ArgumentParser(description="Download British Gas myenergy data")
     parser.add_argument(
@@ -149,9 +149,9 @@ def main():
     all_fuels = fetch_consumption_history(args.username, args.password)
 
     # Remove empty items
-    valid_data = [_ for _ in all_fuels if not _["empty"]]
-    gas_history = [_ for _ in valid_data if _["fuel"] == "gas"]
-    elec_history = [_ for _ in valid_data if _["fuel"] == "electricity"]
+    valid_data: List = [_ for _ in all_fuels if not _["empty"]]
+    gas_history: List = [_ for _ in valid_data if _["fuel"] == "gas"]
+    elec_history: List = [_ for _ in valid_data if _["fuel"] == "electricity"]
 
     # Save data
     save_as_csv(gas_history, GAS_FILENAME)

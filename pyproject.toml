@@ -14,6 +14,10 @@ rich = "^10.1.0"
 
 [tool.poetry.dev-dependencies]
 black = {version = "^20.8b1", allow-prereleases = true}
+mypy = "^0.812"
+safety = "^1.10.3"
+isort = "^5.8.0"
+pre-commit = "^2.12.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -22,3 +26,26 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 download_myenergy = "britishgas_myenergy_exporter.fetch:main"
+
+
+[tool.black]
+line-length = 132
+target-version = ['py37', 'py38']
+include = '(src\/scripts\/.*$|\.pyi?$)'
+exclude = '''
+/(
+    \.git
+  | __pycache__
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | docs
+  | notes
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 132
+skip_glob = [ "docs", "notes" ]
